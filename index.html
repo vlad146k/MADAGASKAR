@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Мадагаскар: Хроники джунглей</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #050a05;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      user-select: none;
+      overflow: hidden;
+    }
+    #game-wrapper { display: flex; gap: 12px; align-items: stretch; }
+    #game-container {
+      position: relative;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 0 50px rgba(34,139,34,0.8), 0 0 100px rgba(0,0,0,0.5);
+      border: 3px solid #2a5a2a;
+    }
+    canvas { display: block; cursor: crosshair; }
+    #side-panel {
+      background: linear-gradient(180deg, #0d1f0d, #051005);
+      border-radius: 18px;
+      padding: 12px;
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      color: #ffd54f;
+      box-shadow: 0 0 40px rgba(0,0,0,0.9), inset 0 0 20px rgba(0,0,0,0.3);
+      border: 2px solid #3a5a3a;
+      overflow-y: auto;
+      max-height: 95vh;
+      font-size: 11px;
+    }
+    .panel-title {
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      background: linear-gradient(90deg, #ffb300, #ffd700, #ffb300);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: none;
+      border-bottom: 2px solid #4a7c4a;
+      padding-bottom: 8px;
+      letter-spacing: 2px;
+    }
+    .currency-display {
+      background: linear-gradient(180deg, #1a3a1a, #0a1a0a);
+      border-radius: 30px;
+      padding: 10px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      color: #ffd700;
+      border: 2px solid #ffd700;
+      box-shadow: 0 0 20px rgba(255,215,0,0.3);
+    }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .stat-box {
+      background: linear-gradient(180deg, #0d1f0d, #051005);
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+      border: 1px solid #3a6b3a;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+    }
+    .stat-label { font-size: 9px; color: #8a8; text-transform: uppercase; letter-spacing: 1px; }
+    .stat-value { font-size: 15px; font-weight: bold; color: #fff; text-shadow: 0 0 5px rgba(255,255,255,0.3); }
+    .shop-btn {
+      background: linear-gradient(180deg, #1a3a1a, #0d1f0d);
+      border: 2px solid #4a7c4a;
+      border-radius: 8px;
+      padding: 6px 10px;
+      color: #ffd700;
+      cursor: pointer;
+      font-size: 10px;
+      font-weight: bold;
+      transition: all 0.2s;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .shop-btn:hover {
+      background: linear-gradient(180deg, #2a4a2a, #1a3a1a);
+      border-color: #ffb300;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+    .shop-btn:disabled {
+      background: #0a1a0a;
+      color: #555;
+      cursor: not-allowed;
+      border-color: #222;
+    }
+    .shop-btn.emergency {
+      background: linear-gradient(180deg, #8B0000, #4a0000);
+      border-color: #ff4444;
+      animation: pulse-red 0.8s infinite;
+    }
+    @keyframes pulse-red {
+      0%,100% { box-shadow: 0 0 10px rgba(255,0,0,0.6); }
+      50% { box-shadow: 0 0 30px rgba(255,0,0,1); }
+    }
+    .unit-selector { display: flex; flex-direction: column; gap: 5px; }
+    .unit-btn {
+      background: linear-gradient(180deg, #0d1f0d, #051005);
+      border: 2px solid #3a6b3a;
+      border-radius: 8px;
+      padding: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #ccc;
+      font-size: 10px;
+    }
+    .unit-btn:hover {
+      background: linear-gradient(180deg, #1a3a1a, #0d1f0d);
+      border-color: #ffb300;
+    }
+    .unit-btn.active {
+      background: linear-gradient(180deg, #2a4a2a, #1a3a1a);
+      border-color: #ffd700;
+      box-shadow: 0 0 15px rgba(255,215,0,0.5);
+      color: #ffd700;
+    }
+    .unit-emoji { font-size: 24px; width: 30px; text-align: center; }
+    .unit-info { flex: 1; }
+    .unit-name { font-weight: bold; font-size: 12px; }
+    .unit-cost { font-size: 9px; color: #ffd700; }
+    .unit-stats { font-size: 8px; color: #aaa; }
+    .unit-ability { font-size: 8px; color: #ff9800; }
+    #selected-unit-info {
+      background: linear-gradient(180deg, #0d1f0d, #051005);
+      border-radius: 8px;
+      padding: 6px;
+      border: 1px solid #4a7c4a;
+      text-align: center;
+      font-size: 11px;
+    }
+    #restartButton, #sellModeBtn {
+      background: linear-gradient(180deg, #c62828, #8b0000);
+      color: white;
+      border: none;
+      border-radius: 25px;
+      padding: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 12px;
+      transition: 0.2s;
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 10px rgba(255,0,0,0.5); }
+      50% { box-shadow: 0 0 30px rgba(255,0,0,0.9); }
+    }
+    #sellModeBtn.active-sell { background: #ff0000; animation: pulse 0.8s infinite; }
+    .message {
+      text-align: center;
+      font-size: 10px;
+      color: #ffeb3b;
+      min-height: 16px;
+      font-weight: bold;
+      text-shadow: 0 0 10px rgba(255,235,59,0.5);
+    }
+    .player-ability-btn { background: linear-gradient(180deg, #4a004a, #2a002a); border-color: #ff00ff; }
+    .player-ability-btn:hover { background: linear-gradient(180deg, #6a006a, #4a004a); }
+    .section-title {
+      font-weight: bold;
+      color: #ffb300;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-left: 3px solid #ffb300;
+      padding-left: 6px;
+    }
+  </style>
+</head>
+<body>
+<div id="game-wrapper">
+  <div id="game-container"><canvas id="gameCanvas" width="800" height="550"></canvas></div>
+  <div id="side-panel">
+    <div class="panel-title">🌴 ДЖУНГЛИ МАДАГАСКАРА</div>
+    <div class="currency-display">🪙 <span id="currencyAmount">1000</span></div>
+    <div class="stats-grid">
+      <div class="stat-box"><div class="stat-label">🍄 Грибы</div><div class="stat-value" id="mushroomHealth">100%</div></div>
+      <div class="stat-box"><div class="stat-label">🧱 Стена</div><div class="stat-value" id="wallHealth">100%</div></div>
+      <div class="stat-box"><div class="stat-label">🌊 Волна</div><div class="stat-value" id="waveCount">1/30</div></div>
+      <div class="stat-box"><div class="stat-label">🪲 Жуки</div><div class="stat-value" id="enemyCount">0</div></div>
+    </div>
+    <div class="stat-box" style="grid-column:1/3;"><div class="stat-label">🗼 Башни / 🌵 Шипы / 🔫 Орудия</div><div class="stat-value" id="towerCount">0/30 | 0 | 0/0</div></div>
+
+    <div class="section-title">🧱 Укрепления</div>
+    <button class="shop-btn" id="upgradeWallBtn">🔨 Уровень стены (300🪙)</button>
+    <button class="shop-btn" id="healWallBtn">💚 Ремонт стены (150🪙)</button>
+    <button class="shop-btn" id="spikeWallBtn">🌵 Шипы (400🪙)</button>
+    <button class="shop-btn" id="machineGunBtn">🔫 Пулемёт (600🪙)</button>
+    <button class="shop-btn" id="poisonDartBtn">🎯 Ядовитый дротик (700🪙)</button>
+    <button class="shop-btn" id="iceWallBtn">❄️ Ледяная аура (500🪙)</button>
+    <button class="shop-btn" id="fireWallBtn">🔥 Огненная стена (800🪙)</button>
+    <button class="shop-btn" id="rebuildWallBtn" style="display:none;">🏗️ Восстановить стену (600🪙)</button>
+
+    <div class="section-title">⚡ Магия игрока</div>
+    <button class="shop-btn player-ability-btn" id="lightningBtn">⚡ Цепная молния (250🪙)</button>
+    <button class="shop-btn player-ability-btn" id="healMushBtn">🍄 Исцеление грибов (200🪙)</button>
+    <button class="shop-btn player-ability-btn" id="meteorBtn">☄️ Метеоритный дождь (500🪙)</button>
+
+    <div class="section-title">🗼 Башни</div>
+    <div class="unit-selector">
+      <button id="charLemur" class="unit-btn active"><span class="unit-emoji">🐒</span><div class="unit-info"><div class="unit-name">Лемур</div><div class="unit-cost">🪙 100</div><div class="unit-stats">Урон:18 Даль:130</div><div class="unit-ability">🍌 Каждые 5 атак - град бананов</div></div></button>
+      <button id="charFossa" class="unit-btn"><span class="unit-emoji">🐆</span><div class="unit-info"><div class="unit-name">Фосса</div><div class="unit-cost">🪙 400</div><div class="unit-stats">Урон:65 Даль:90</div><div class="unit-ability">🦞 Кровавые когти - урон по области</div></div></button>
+      <button id="charChameleon" class="unit-btn"><span class="unit-emoji">🦎</span><div class="unit-info"><div class="unit-name">Хамелеон</div><div class="unit-cost">🪙 320</div><div class="unit-stats">Урон:35 Даль:170</div><div class="unit-ability">👅 Смертельный захват языком</div></div></button>
+      <button id="charEagle" class="unit-btn"><span class="unit-emoji">🦅</span><div class="unit-info"><div class="unit-name">Орёл</div><div class="unit-cost">🪙 500</div><div class="unit-stats">Урон:80 Даль:210</div><div class="unit-ability">⚡ Пике - урон + 3с оглушение</div></div></button>
+      <button id="charScorpion" class="unit-btn"><span class="unit-emoji">🦂</span><div class="unit-info"><div class="unit-name">Скорпион</div><div class="unit-cost">🪙 550</div><div class="unit-stats">Урон:50 Даль:110</div><div class="unit-ability">🦂 Нейротоксин - периодический урон</div></div></button>
+    </div>
+    <div id="selected-unit-info"><div style="font-size:30px;">🐒</div><div style="color:#ffd700;">Лемур выбран</div></div>
+    <button id="sellModeBtn">💰 ПРОДАЖА (выкл)</button>
+    <div class="message" id="gameMessage"></div>
+    <button id="restartButton">🔄 НАЧАТЬ ЗАНОВО</button>
+  </div>
+</div>
+
+<script>
+(function(){
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+const W=800,H=550,MAX_WAVES=30,MAX_TOWERS=30;
+
+let wall={x:620,y:130,w:35,h:290,maxHp:600,hp:600,active:true,spikes:0,iceTimer:0,gunLevel:0,poisonLevel:0,gunCooldown:0,fireTimer:0};
+let mushrooms=[],defenders=[];
+let enemies=[],projectiles=[],particles=[],stolenMushrooms=[];
+let slowZones=[],tongueVisuals=[],clawVisuals=[],poisonEffects=[],meteorShowers=[];
+let currency=1000,wave=1,enemiesThisWave=8,enemiesSpawned=0;
+let gameOver=false,gameWin=false,selectedUnitType='lemur',sellMode=false;
+let spawnTimer=0,mouseX=0,mouseY=0,SPAWN_DELAY=30;
+let wallLevel=1,freezeAllTowers=false,freezeTimer=0;
+let jungleVines=[],fireflies=[],bgElements=[],weatherParticles=[];
+let roadPath=[],freezeSpawnedThisWave=0,bossSpawned=false,eliteBossSpawned=false;
+let lightningCooldown=0,healMushCooldown=0,meteorCooldown=0;
+let score=0,comboCount=0,comboTimer=0;
+
+function generateRoadPath(){ roadPath=[{x:30,y:270},{x:90,y:240},{x:160,y:290},{x:240,y:250},{x:320,y:300},{x:400,y:260},{x:480,y:280},{x:560,y:270},{x:620,y:270}]; }
+function initJungleBackground(){
+  jungleVines=[];for(let i=0;i<20;i++) jungleVines.push({x:Math.random()*W,y:Math.random()*H*0.7,length:80+Math.random()*180,swing:Math.random()*Math.PI*2,speed:0.003+Math.random()*0.02});
+  fireflies=[];for(let i=0;i<40;i++) fireflies.push({x:Math.random()*W,y:Math.random()*H,alpha:Math.random(),speed:0.02+Math.random()*0.05,size:1+Math.random()*4});
+  bgElements=[];
+  for(let i=0;i<10;i++) bgElements.push({type:'tree',x:Math.random()*W,y:Math.random()*H*0.5,size:0.7+Math.random()*0.9});
+  for(let i=0;i<15;i++) bgElements.push({type:'bush',x:Math.random()*W,y:H-50+Math.random()*40,size:0.5+Math.random()*0.8});
+  for(let i=0;i<5;i++) bgElements.push({type:'rock',x:Math.random()*W,y:H-60+Math.random()*30,size:0.6+Math.random()*0.7});
+  weatherParticles=[];
+  for(let i=0;i<15;i++) weatherParticles.push({x:Math.random()*W,y:Math.random()*H,vx:-0.5-Math.random()*0.5,vy:1+Math.random()*2,life:100+Math.random()*200,type:'leaf'});
+}
+
+class Mushroom{
+  constructor(x,y,type='normal'){this.x=x;this.y=y;this.maxHp=type==='golden'?200:80;this.hp=this.maxHp;this.stolen=false;this.type=type;}
+  draw(ctx){if(this.stolen)return;
+    if(this.type==='golden'){ctx.fillStyle='#FFD700';ctx.shadowColor='#FFD700';ctx.shadowBlur=10;}
+    else{ctx.fillStyle='#e53935';ctx.shadowBlur=0;}
+    ctx.beginPath();ctx.arc(this.x,this.y-2,16,Math.PI,0);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(this.x-5,this.y-9,5,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(this.x+5,this.y-11,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#f5f5dc';ctx.fillRect(this.x-5,this.y+2,10,18);
+    ctx.shadowBlur=0;
+    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(this.x-14,this.y-24,28,6);
+    ctx.fillStyle='#4caf50';ctx.fillRect(this.x-14,this.y-24,28*(this.hp/this.maxHp),6);
+  }
+}
+
+class MeteorShower{constructor(x,y){this.x=x;this.y=y;this.life=60;this.maxLife=60;this.radius=80;}update(){this.life--;}draw(ctx){let a=this.life/this.maxLife;ctx.fillStyle=`rgba(255,100,0,${a*0.4})`;ctx.beginPath();ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);ctx.fill();for(let i=0;i<8;i++){let angle=(i/8)*Math.PI*2;ctx.fillStyle=`rgba(255,200,0,${a*0.8})`;ctx.fillRect(this.x+Math.cos(angle)*this.radius-3,this.y+Math.sin(angle)*this.radius-3,6,6);}}}
+
+class PoisonEffect{constructor(x,y){this.x=x;this.y=y;this.damage=10;this.ticks=12;}update(){this.ticks--;}draw(ctx){if(this.ticks<=0)return;ctx.fillStyle=`rgba(128,0,128,${this.ticks/12*0.7})`;ctx.beginPath();ctx.arc(this.x,this.y,15,0,Math.PI*2);ctx.fill();}}
+class SlowZone{constructor(x,y){this.x=x;this.y=y;this.radius=70;this.life=150;}update(){this.life--;}draw(ctx){let a=this.life/150*0.4;ctx.fillStyle=`rgba(100,149,237,${a})`;ctx.beginPath();ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);ctx.fill();}}
+class TongueVisual{constructor(fx,fy,tx,ty){this.fx=fx;this.fy=fy;this.tx=tx;this.ty=ty;this.life=18;this.cp=[{x:fx+(tx-fx)*0.3+(Math.random()-0.5)*40,y:fy+(ty-fy)*0.3+(Math.random()-0.5)*40},{x:fx+(tx-fx)*0.7+(Math.random()-0.5)*40,y:fy+(ty-fy)*0.7+(Math.random()-0.5)*40}];}update(){this.life--;}draw(ctx){let a=this.life/18;ctx.strokeStyle=`rgba(255,105,180,${a})`;ctx.lineWidth=5*a;ctx.beginPath();ctx.moveTo(this.fx,this.fy);ctx.bezierCurveTo(this.cp[0].x,this.cp[0].y,this.cp[1].x,this.cp[1].y,this.tx,this.ty);ctx.stroke();ctx.fillStyle=`rgba(255,20,147,${a})`;ctx.beginPath();ctx.arc(this.tx,this.ty,6*a,0,Math.PI*2);ctx.fill();}}
+class ClawVisual{constructor(x,y,angle){this.x=x;this.y=y;this.angle=angle;this.life=22;this.spread=0;}update(){this.life--;this.spread+=0.35;}draw(ctx){let a=this.life/22;ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.angle);ctx.strokeStyle=`rgba(255,87,34,${a})`;ctx.lineWidth=4*a;for(let i=-2;i<=2;i++){ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(28+Math.sin(i*this.spread)*18,-10+Math.cos(i*this.spread)*10);ctx.stroke();}ctx.restore();}}
+
+class Defender{
+  constructor(x,y,type){
+    this.x=x;this.y=y;this.type=type;this.cooldown=0;this.target=null;this.attackCount=0;this.animTimer=0;this.level=1;
+    switch(type){
+      case 'lemur':this.range=130;this.damage=18;this.attackSpeed=25;this.cost=100;this.sellPrice=60;break;
+      case 'fossa':this.range=90;this.damage=65;this.attackSpeed=40;this.cost=400;this.sellPrice=200;break;
+      case 'chameleon':this.range=170;this.damage=35;this.attackSpeed=30;this.cost=320;this.sellPrice=160;break;
+      case 'eagle':this.range=210;this.damage=80;this.attackSpeed=45;this.cost=500;this.sellPrice=250;break;
+      case 'scorpion':this.range=110;this.damage=50;this.attackSpeed=35;this.cost=550;this.sellPrice=275;break;
+    }
+  }
+  update(enemiesList,projectilesList,stolenList,tongueVis,clawVis,poisonEffs){
+    if(freezeAllTowers)return;if(this.cooldown>0)this.cooldown--;if(this.animTimer>0)this.animTimer--;
+    this.target=null;let all=[...enemiesList,...stolenList],minDist=Infinity;
+    for(let e of all){let d=Math.hypot(this.x-e.x,this.y-e.y);if(d<=this.range&&d<minDist){minDist=d;this.target=e;}}
+    if(this.target&&this.cooldown<=0){this.attack(projectilesList,tongueVis,clawVis,poisonEffs);this.cooldown=this.attackSpeed;this.animTimer=15;}
+  }
+  attack(projectilesList,tongueVis,clawVis,poisonEffs){
+    if(this.type==='lemur'){this.attackCount++;let dmg=this.damage*this.level;if(this.attackCount>=5){this.attackCount=0;for(let i=0;i<7;i++){let a=Math.atan2(this.target.y-this.y,this.target.x-this.x)+(i-3)*0.25;projectilesList.push(new Projectile(this.x,this.y,a,dmg*1.3,'banana_bunch',false));}}else{projectilesList.push(new Projectile(this.x,this.y,Math.atan2(this.target.y-this.y,this.target.x-this.x),dmg,'banana',false));}}
+    else if(this.type==='fossa'){let a=Math.atan2(this.target.y-this.y,this.target.x-this.x);projectilesList.push(new Projectile(this.x,this.y,a,this.damage*this.level,'claw',true));clawVis.push(new ClawVisual(this.x,this.y,a));}
+    else if(this.type==='chameleon'){let a=Math.atan2(this.target.y-this.y,this.target.x-this.x);projectilesList.push(new Projectile(this.x,this.y,a,this.damage*this.level,'tongue',false,this.target));tongueVis.push(new TongueVisual(this.x,this.y,this.target.x,this.target.y));}
+    else if(this.type==='eagle'){projectilesList.push(new Projectile(this.x,this.y,Math.atan2(this.target.y-this.y,this.target.x-this.x),this.damage*this.level,'eagle',true,this.target));this.target.stunTimer=50;}
+    else if(this.type==='scorpion'){projectilesList.push(new Projectile(this.x,this.y,Math.atan2(this.target.y-this.y,this.target.x-this.x),this.damage*this.level,'poison',false,this.target));poisonEffs.push(new PoisonEffect(this.target.x,this.target.y));}
+  }
+  draw(ctx,isHovered){
+    ctx.save();ctx.translate(this.x,this.y);
+    if(isHovered){ctx.strokeStyle='#FFD700';ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,24,0,Math.PI*2);ctx.stroke();ctx.fillStyle='rgba(255,215,0,0.1)';ctx.beginPath();ctx.arc(0,0,this.range,0,Math.PI*2);ctx.fill();}
+    if(freezeAllTowers){ctx.fillStyle='rgba(0,200,255,0.4)';ctx.beginPath();ctx.arc(0,0,22,0,Math.PI*2);ctx.fill();}
+    if(this.type==='lemur'){ctx.fillStyle='#c0c0c0';ctx.beginPath();ctx.arc(0,0,17,0,Math.PI*2);ctx.fill();ctx.fillStyle='#eee';ctx.beginPath();ctx.arc(-7,-6,6,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(7,-6,6,0,Math.PI*2);ctx.fill();ctx.fillStyle='#000';ctx.beginPath();ctx.arc(-8,-7,2.5,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(6,-7,2.5,0,Math.PI*2);ctx.fill();if(this.level>1)ctx.fillStyle='#FFD700';}
+    else if(this.type==='fossa'){ctx.fillStyle='#B5651D';ctx.beginPath();ctx.arc(0,0,19,0,Math.PI*2);ctx.fill();ctx.fillStyle='#8B4513';ctx.beginPath();ctx.arc(0,-6,10,0,Math.PI*2);ctx.fill();if(this.animTimer>0){ctx.fillStyle='#ff5722';ctx.beginPath();ctx.moveTo(12,-10);ctx.lineTo(25,-16);ctx.lineTo(20,-4);ctx.lineTo(28,4);ctx.lineTo(16,0);ctx.fill();}}
+    else if(this.type==='chameleon'){ctx.fillStyle='#4CAF50';ctx.beginPath();ctx.arc(0,0,16,0,Math.PI*2);ctx.fill();ctx.fillStyle='#2E7D32';ctx.beginPath();ctx.arc(0,0,11,0,Math.PI*2);ctx.fill();if(this.animTimer>0){ctx.strokeStyle='#FF69B4';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(12,-6);ctx.quadraticCurveTo(24,-18,35,-6);ctx.stroke();}}
+    else if(this.type==='eagle'){ctx.fillStyle='#5D4037';ctx.beginPath();ctx.arc(0,0,17,0,Math.PI*2);ctx.fill();ctx.fillStyle='#FFD700';ctx.beginPath();ctx.arc(-5,-9,4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(5,-9,4,0,Math.PI*2);ctx.fill();if(this.animTimer>0){ctx.fillStyle='#FFD700';ctx.beginPath();ctx.moveTo(0,-14);ctx.lineTo(-10,-22);ctx.lineTo(0,-26);ctx.lineTo(10,-22);ctx.fill();}}
+    else if(this.type==='scorpion'){ctx.fillStyle='#4a148c';ctx.beginPath();ctx.arc(0,0,16,0,Math.PI*2);ctx.fill();ctx.fillStyle='#6a1b9a';ctx.beginPath();ctx.arc(0,0,11,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#ff1744';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,12);ctx.quadraticCurveTo(10,18,16,12);ctx.stroke();ctx.fillStyle='#ff1744';ctx.beginPath();ctx.arc(16,12,5,0,Math.PI*2);ctx.fill();}
+    if(isHovered&&sellMode){ctx.fillStyle='rgba(255,0,0,0.7)';ctx.beginPath();ctx.arc(0,0,20,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 16px Arial';ctx.textAlign='center';ctx.fillText('🪙'+this.sellPrice,0,7);}
+    ctx.restore();
+  }
+}
+
+class Projectile{
+  constructor(x,y,angle,damage,type,isAOE,targetEnemy){this.x=x;this.y=y;this.vx=Math.cos(angle)*(type==='tongue'||type==='eagle'?12:7);this.vy=Math.sin(angle)*(type==='tongue'||type==='eagle'?12:7);this.damage=damage;this.type=type;this.radius=type==='claw'?8:5;this.life=type==='tongue'||type==='eagle'?22:80;this.isAOE=isAOE;this.targetEnemy=targetEnemy;this.hit=false;}
+  update(){this.x+=this.vx;this.y+=this.vy;this.life--;}
+  draw(ctx){
+    ctx.save();
+    if(this.type==='banana'){ctx.fillStyle='#FFD700';ctx.beginPath();ctx.arc(this.x,this.y,6,0,Math.PI,0);ctx.fill();}
+    else if(this.type==='banana_bunch'){ctx.fillStyle='#FFD700';for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(this.x+i*5-8,this.y+i*3-4,4,0,Math.PI*2);ctx.fill();}}
+    else if(this.type==='claw'){ctx.fillStyle='#ff5722';ctx.beginPath();ctx.moveTo(this.x,this.y);ctx.lineTo(this.x-8,this.y+6);ctx.lineTo(this.x+4,this.y+3);ctx.lineTo(this.x+8,this.y+8);ctx.lineTo(this.x+3,this.y);ctx.fill();}
+    else if(this.type==='tongue'){ctx.fillStyle='#FF1493';ctx.beginPath();ctx.arc(this.x,this.y,5,0,Math.PI*2);ctx.fill();}
+    else if(this.type==='eagle'){ctx.fillStyle='#FFD700';ctx.beginPath();ctx.moveTo(this.x,this.y-10);ctx.lineTo(this.x-8,this.y+6);ctx.lineTo(this.x+8,this.y+6);ctx.fill();}
+    else if(this.type==='poison'){ctx.fillStyle='#7b1fa2';ctx.beginPath();ctx.arc(this.x,this.y,4,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+  }
+}
+
+class Enemy{
+  constructor(x,y,type){
+    this.x=x;this.y=y;this.type=type;this.attackCooldown=0;this.carryingMushroom=null;this.retreating=false;this.slowTimer=0;this.stunTimer=0;this.size=18;this.pathIndex=0;this.targetMushroom=null;
+    switch(type){
+      case 'normal':this.speed=1.6+wave*0.12;this.hp=40+wave*10;this.maxHp=this.hp;this.damage=12;this.color1='#5d3a1a';this.color2='#3e2010';this.name='Жук';break;
+      case 'army':this.speed=2.4+wave*0.14;this.hp=28+wave*7;this.maxHp=this.hp;this.damage=18;this.color1='#6b4a2a';this.color2='#9b7b55';this.size=16;this.name='Армейский';break;
+      case 'armored':this.speed=0.65+wave*0.04;this.hp=600+wave*40;this.maxHp=this.hp;this.damage=30;this.color1='#555';this.color2='#333';this.size=26;this.name='Бронебойный';break;
+      case 'freeze':this.speed=1.7+wave*0.09;this.hp=70+wave*15;this.maxHp=this.hp;this.damage=14;this.color1='#5ac8ff';this.color2='#3098cc';this.size=20;this.name='Ледяной';this.freezeOnDeath=true;break;
+      case 'explosive':this.speed=1.4+wave*0.08;this.hp=90+wave*18;this.maxHp=this.hp;this.damage=35;this.color1='#ff5722';this.color2='#9b1a00';this.size=21;this.name='Взрывной';this.explodeOnDeath=true;break;
+      case 'toxic':this.speed=1.3+wave*0.07;this.hp=120+wave*22;this.maxHp=this.hp;this.damage=20;this.color1='#2e7d32';this.color2='#1b5e20';this.size=22;this.name='Ядовитый';this.toxicAura=true;break;
+      case 'swarm':this.speed=3.2+wave*0.12;this.hp=12+wave*4;this.maxHp=this.hp;this.damage=6;this.color1='#8bc34a';this.color2='#689f38';this.size=11;this.name='Рой';break;
+      case 'jumper':this.speed=1.9;this.hp=45+wave*12;this.maxHp=this.hp;this.damage=40;this.color1='#ff5252';this.color2='#d32f2f';this.size=18;this.name='Прыгун';this.canJump=true;this.jumpCooldown=0;break;
+      case 'elite_boss':this.speed=0.55;this.hp=50000;this.maxHp=50000;this.damage=70;this.color1='#E040FB';this.color2='#AA00FF';this.size=42;this.name='👾 ЭЛИТНЫЙ ЖУК';this.isBoss=true;break;
+      case 'boss_king':this.speed=0.45;this.hp=100000;this.maxHp=100000;this.damage=120;this.color1='#FFD700';this.color2='#FF8C00';this.size=50;this.name='👑 КОРОЛЬ ЖУКОВ';this.isBoss=true;break;
+    }
+  }
+  update(wallObj,mushroomsArr){
+    if(this.stunTimer>0){this.stunTimer--;return null;}if(this.slowTimer>0)this.slowTimer--;
+    if(this.retreating){this.x-=this.speed;if(this.x<-40){if(this.carryingMushroom){this.carryingMushroom.stolen=true;this.carryingMushroom.hp=0;}return'escaped';}return null;}
+    let curSpeed=this.slowTimer>0?this.speed*0.35:this.speed;
+    if(wallObj.iceTimer>0)curSpeed*=0.25;
+    if(wallObj.fireTimer>0)this.hp-=3;
+    if(this.canJump&&this.jumpCooldown<=0&&wallObj.active&&this.pathIndex>=roadPath.length-2){this.y-=50;this.jumpCooldown=55;}
+    if(this.jumpCooldown>0)this.jumpCooldown--;
+    if(this.pathIndex<roadPath.length-1){let target=roadPath[this.pathIndex+1];let dx=target.x-this.x,dy=target.y-this.y,dist=Math.hypot(dx,dy);if(dist<7)this.pathIndex++;else{this.x+=(dx/dist)*curSpeed;this.y+=(dy/dist)*curSpeed;}}
+    if(this.attackCooldown>0)this.attackCooldown--;
+    if(this.pathIndex>=roadPath.length-1){
+      if(wallObj.active){
+        if(wallObj.spikes>0){this.hp-=wallObj.spikes*7;if(this.hp<=0)return'kill';}
+        if(this.attackCooldown<=0){wallObj.hp-=this.damage;this.attackCooldown=25;if(wallObj.hp<=0){wallObj.active=false;wallObj.hp=0;}}
+      }else{
+        let alive=mushroomsArr.filter(m=>!m.stolen&&m.hp>0);
+        if(alive.length>0&&!this.targetMushroom){let closest=null,minDist=Infinity;for(let m of alive){let d=Math.hypot(this.x-m.x,this.y-m.y);if(d<minDist){minDist=d;closest=m;}}if(closest&&minDist<250)this.targetMushroom=closest;}
+        if(this.targetMushroom&&(this.targetMushroom.stolen||this.targetMushroom.hp<=0))this.targetMushroom=null;
+        if(this.targetMushroom){let dx=this.targetMushroom.x-this.x,dy=this.targetMushroom.y-this.y,dist=Math.hypot(dx,dy);if(dist<22&&this.attackCooldown<=0){this.targetMushroom.hp-=35;this.carryingMushroom=this.targetMushroom;this.targetMushroom.stolen=true;this.retreating=true;this.attackCooldown=55;return'steal';}else if(dist>8){this.x+=(dx/dist)*curSpeed;this.y+=(dy/dist)*curSpeed;}}
+      }
+    }
+    if(this.toxicAura){for(let m of mushroomsArr){if(!m.stolen&&Math.hypot(this.x-m.x,this.y-m.y)<55)m.hp-=0.6;}}return null;
+  }
+  draw(ctx){
+    ctx.save();ctx.translate(this.x,this.y);if(this.retreating)ctx.scale(-1,1);
+    if(this.type==='boss_king'){
+      ctx.shadowColor='#FFD700';ctx.shadowBlur=20;
+      ctx.fillStyle='#FFD700';ctx.beginPath();ctx.arc(0,0,this.size/1.3,0,Math.PI*2);ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.fillStyle='#FF8C00';ctx.beginPath();ctx.arc(0,-6,18,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#FF0000';ctx.beginPath();ctx.arc(-8,-10,6,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(8,-10,6,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#FFD700';ctx.beginPath();ctx.moveTo(0,-28);ctx.lineTo(-14,-42);ctx.lineTo(14,-42);ctx.fill();
+      ctx.strokeStyle='#FFD700';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(-12,-16);ctx.lineTo(-24,-28);ctx.stroke();ctx.beginPath();ctx.moveTo(12,-16);ctx.lineTo(24,-28);ctx.stroke();
+    }
+    else if(this.type==='elite_boss'){
+      ctx.shadowColor='#E040FB';ctx.shadowBlur=15;
+      ctx.fillStyle='#E040FB';ctx.beginPath();ctx.arc(0,0,this.size/1.3,0,Math.PI*2);ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.fillStyle='#AA00FF';ctx.beginPath();ctx.arc(0,-6,16,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#FF1744';ctx.beginPath();ctx.arc(-7,-9,5,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(7,-9,5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#E040FB';ctx.beginPath();ctx.moveTo(0,-24);ctx.lineTo(-10,-35);ctx.lineTo(10,-35);ctx.fill();
+      ctx.strokeStyle='#E040FB';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-10,-14);ctx.lineTo(-20,-22);ctx.stroke();ctx.beginPath();ctx.moveTo(10,-14);ctx.lineTo(20,-22);ctx.stroke();
+    }
+    else if(this.type==='swarm'){ctx.fillStyle=this.color1;ctx.beginPath();ctx.arc(0,0,this.size/1.8,0,Math.PI*2);ctx.fill();}
+    else if(this.type==='jumper'){ctx.fillStyle=this.color1;ctx.beginPath();ctx.arc(0,0,this.size/1.6,0,Math.PI*2);ctx.fill();ctx.fillStyle=this.color2;ctx.beginPath();ctx.arc(-5,-4,5,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(5,-4,5,0,Math.PI*2);ctx.fill();}
+    else{ctx.fillStyle=this.color1;ctx.beginPath();ctx.arc(0,0,this.size/1.6,0,Math.PI*2);ctx.fill();ctx.fillStyle=this.color2;ctx.beginPath();ctx.arc(-5,-4,4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(5,-4,4,0,Math.PI*2);ctx.fill();ctx.strokeStyle=this.color2;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-4,-9);ctx.lineTo(-10,-16);ctx.stroke();ctx.beginPath();ctx.moveTo(4,-9);ctx.lineTo(10,-16);ctx.stroke();}
+    if(this.slowTimer>0){ctx.fillStyle='rgba(100,149,237,0.5)';ctx.beginPath();ctx.arc(0,0,this.size/1.3,0,Math.PI*2);ctx.fill();}
+    if(this.stunTimer>0){ctx.fillStyle='rgba(255,215,0,0.6)';ctx.beginPath();ctx.arc(0,0,this.size/1.1,0,Math.PI*2);ctx.fill();}
+    if(this.carryingMushroom){ctx.fillStyle='#e53935';ctx.beginPath();ctx.arc(0,-14,8,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+    let barW=this.isBoss?70:30;ctx.fillStyle='rgba(0,0,0,0.8)';ctx.fillRect(this.x-barW/2,this.y-36,barW,this.isBoss?10:6);
+    ctx.fillStyle='#4caf50';ctx.fillRect(this.x-barW/2,this.y-36,barW*(this.hp/this.maxHp),this.isBoss?10:6);
+    ctx.fillStyle='#fff';ctx.font=this.isBoss?'bold 14px Arial':'10px Arial';ctx.textAlign='center';ctx.fillText(this.name,this.x,this.y-(this.isBoss?42:32));
+  }
+}
+
+class Particle{constructor(x,y,color,size){this.x=x;this.y=y;this.vx=(Math.random()-0.5)*(size||6);this.vy=(Math.random()-0.5)*(size||6)-3;this.life=30+Math.random()*25;this.color=color;this.size=2+Math.random()*(size||5);}update(){this.x+=this.vx;this.y+=this.vy;this.life--;}draw(ctx){ctx.globalAlpha=this.life/55;ctx.fillStyle=this.color;ctx.fillRect(this.x,this.y,this.size,this.size);ctx.globalAlpha=1;}}
+
+function getEnemyTypeForWave(){
+  if(wave===20&&!eliteBossSpawned&&enemiesSpawned>=Math.floor(enemiesThisWave*0.7)){eliteBossSpawned=true;return'elite_boss';}
+  if(wave===30&&!bossSpawned)return'boss_king';
+  let r=Math.random();
+  if(freezeSpawnedThisWave<2&&wave>=5&&r<0.18){freezeSpawnedThisWave++;return'freeze';}
+  if(wave>=28){if(r<0.2)return'jumper';if(r<0.45)return'toxic';if(r<0.65)return'armored';return'explosive';}
+  if(wave>=22){if(r<0.15)return'jumper';if(r<0.3)return'swarm';if(r<0.5)return'toxic';if(r<0.7)return'armored';return'freeze';}
+  if(wave>=16){if(r<0.2)return'swarm';if(r<0.4)return'explosive';if(r<0.6)return'armored';return'army';}
+  if(wave>=10){if(r<0.25)return'armored';if(r<0.5)return'army';return'normal';}
+  if(wave>=5){if(r<0.3)return'army';return'normal';}
+  return'normal';
+}
+
+function upgradeWall(){
+  let costs=[0,300,500,750,1000,1300,1600,2000,2500];
+  if(wallLevel>=8){msg('Максимальный уровень стены!');return;}
+  let cost=costs[wallLevel+1]||2500;
+  if(currency<cost){msg('Недостаточно монет!');return;}
+  currency-=cost;wallLevel++;wall.maxHp=500+wallLevel*150;wall.hp=Math.min(wall.hp+200,wall.maxHp);
+  if(!wall.active){wall.active=true;wall.hp=Math.floor(wall.maxHp*0.6);}updateUI();
+}
+function addSpikes(){if(currency<400){msg('Недостаточно монет!');return;}currency-=400;wall.spikes++;updateUI();}
+function addMachineGun(){
+  let cost=600+wall.gunLevel*100;
+  if(currency<cost){msg(`Недостаточно монет! Нужно ${cost}`);return;}
+  currency-=cost;wall.gunLevel++;updateUI();
+}
+function addPoisonDart(){
+  let cost=700+wall.poisonLevel*120;
+  if(currency<cost){msg(`Недостаточно монет! Нужно ${cost}`);return;}
+  currency-=cost;wall.poisonLevel++;updateUI();
+}
+function addIceWall(){if(currency<500){msg('Недостаточно монет!');return;}currency-=500;wall.iceTimer=400;updateUI();}
+function addFireWall(){if(currency<800){msg('Недостаточно монет!');return;}currency-=800;wall.fireTimer=300;updateUI();}
+function rebuildWall(){if(currency<600){msg('Недостаточно монет!');return;}currency-=600;wall.active=true;wall.hp=Math.floor(wall.maxHp*0.6);updateUI();}
+function healWall(){if(!wall.active){msg('Стена разрушена!');return;}if(currency<150){msg('Недостаточно монет!');return;}currency-=150;wall.hp=Math.min(wall.hp+100,wall.maxHp);updateUI();}
+function castLightning(){
+  if(lightningCooldown>0){msg('Перезарядка молнии!');return;}if(currency<250){msg('Недостаточно монет!');return;}
+  currency-=250;lightningCooldown=150;let all=[...enemies,...stolenMushrooms];if(all.length===0)return;
+  let target=all[Math.floor(Math.random()*all.length)];let chained=[target];
+  for(let i=0;i<3;i++){let last=chained[chained.length-1];let closest=null,minDist=100;for(let e of all){if(!chained.includes(e)){let d=Math.hypot(last.x-e.x,last.y-e.y);if(d<minDist){minDist=d;closest=e;}}}if(closest)chained.push(closest);}
+  for(let e of chained){e.hp-=250;for(let i=0;i<8;i++)particles.push(new Particle(e.x+Math.random()*50-25,e.y+Math.random()*50-25,'#FFFF00',8));if(e.hp<=0)killEnemy(e);}
+  updateUI();msg('⚡ Цепная молния!');
+}
+function castHealMushrooms(){
+  if(healMushCooldown>0){msg('Перезарядка лечения!');return;}if(currency<200){msg('Недостаточно монет!');return;}
+  currency-=200;healMushCooldown=200;for(let m of mushrooms)if(!m.stolen)m.hp=Math.min(m.hp+50,m.maxHp);updateUI();msg('🍄 Грибы исцелены!');
+}
+function castMeteor(){
+  if(meteorCooldown>0){msg('Перезарядка метеорита!');return;}if(currency<500){msg('Недостаточно монет!');return;}
+  currency-=500;meteorCooldown=300;
+  let mx=500+Math.random()*200,my=100+Math.random()*300;
+  meteorShowers.push(new MeteorShower(mx,my));
+  let all=[...enemies,...stolenMushrooms];
+  for(let e of all){if(Math.hypot(e.x-mx,e.y-my)<120){e.hp-=400;if(e.hp<=0)killEnemy(e);}}
+  for(let i=0;i<20;i++)particles.push(new Particle(mx+Math.random()*100-50,my+Math.random()*100-50,'#FF6600',10));
+  updateUI();msg('☄️ Метеоритный дождь!');
+}
+function msg(t){document.getElementById('gameMessage').textContent=t;setTimeout(()=>document.getElementById('gameMessage').textContent='',1800);}
+
+function createLevel(){
+  mushrooms=[];defenders=[];enemies=[];projectiles=[];particles=[];stolenMushrooms=[];
+  slowZones=[];tongueVisuals=[];clawVisuals=[];poisonEffects=[];meteorShowers=[];wallLevel=1;
+  wall={x:620,y:130,w:35,h:290,maxHp:650,hp:650,active:true,spikes:0,iceTimer:0,gunLevel:0,poisonLevel:0,gunCooldown:0,fireTimer:0};
+  mushrooms.push(new Mushroom(700,200,'golden'));
+  mushrooms.push(new Mushroom(740,280));mushrooms.push(new Mushroom(700,360));
+  mushrooms.push(new Mushroom(770,230));mushrooms.push(new Mushroom(770,320));
+  generateRoadPath();currency=1000;wave=1;enemiesThisWave=8;enemiesSpawned=0;freezeSpawnedThisWave=0;bossSpawned=false;eliteBossSpawned=false;
+  gameOver=false;gameWin=false;sellMode=false;freezeAllTowers=false;freezeTimer=0;lightningCooldown=0;healMushCooldown=0;meteorCooldown=0;score=0;comboCount=0;comboTimer=0;
+  updateSellButton();initJungleBackground();updateUI();
+}
+
+function toggleSellMode(){sellMode=!sellMode;updateSellButton();}
+function updateSellButton(){if(sellMode){document.getElementById('sellModeBtn').textContent='💰 ПРОДАЖА (ВКЛ)';document.getElementById('sellModeBtn').classList.add('active-sell');}else{document.getElementById('sellModeBtn').textContent='💰 ПРОДАЖА (выкл)';document.getElementById('sellModeBtn').classList.remove('active-sell');}}
+
+function spawnEnemy(){if(enemiesSpawned>=enemiesThisWave)return;let type=getEnemyTypeForWave();if(wave===30&&!bossSpawned&&enemiesSpawned>=enemiesThisWave-1){type='boss_king';bossSpawned=true;}enemies.push(new Enemy(roadPath[0].x,roadPath[0].y+Math.random()*40-20,type));enemiesSpawned++;}
+function startNextWave(){if(wave>=MAX_WAVES){gameWin=true;msg('🏆 МАДАГАСКАР СПАСЁН!');return;}wave++;enemiesThisWave=6+wave*3;enemiesSpawned=0;freezeSpawnedThisWave=0;bossSpawned=false;eliteBossSpawned=false;currency+=150+wave*30;updateUI();}
+function sellDefender(def){currency+=def.sellPrice;let i=defenders.indexOf(def);if(i>-1)defenders.splice(i,1);updateUI();}
+function placeDefender(mx,my){
+  if(sellMode){let c=null,md=35;for(let d of defenders){let dist=Math.hypot(d.x-mx,d.y-my);if(dist<md){md=dist;c=d;}}if(c){sellDefender(c);return true;}return false;}
+  if(defenders.length>=MAX_TOWERS){msg('Максимум 30 башен!');return false;}
+  let cost=selectedUnitType==='lemur'?100:(selectedUnitType==='fossa'?400:(selectedUnitType==='chameleon'?320:(selectedUnitType==='eagle'?500:550)));
+  if(currency<cost){msg('Недостаточно монет!');return false;}
+  if(mx>580||mx<50||my<80||my>H-80)return false;
+  for(let d of defenders){if(Math.hypot(d.x-mx,d.y-my)<38)return false;}
+  defenders.push(new Defender(mx,my,selectedUnitType));currency-=cost;updateUI();return true;
+}
+function getHoveredDefender(mx,my){for(let d of defenders){if(Math.hypot(d.x-mx,d.y-my)<22)return d;}return null;}
+
+function updateUI(){
+  document.getElementById('currencyAmount').textContent=currency;
+  document.getElementById('waveCount').textContent=wave+'/30';
+  document.getElementById('enemyCount').textContent=enemies.length+stolenMushrooms.length;
+  document.getElementById('towerCount').textContent=defenders.length+'/30 | '+wall.spikes+' | '+wall.gunLevel+'/'+wall.poisonLevel;
+  let costs=[0,300,500,750,1000,1300,1600,2000,2500];
+  document.getElementById('upgradeWallBtn').textContent=wallLevel>=8?'🔨 Макс. уровень':`🔨 Ур. стены ${wallLevel+1} (${costs[wallLevel+1]||2500}🪙)`;
+  document.getElementById('upgradeWallBtn').disabled=wallLevel>=8;
+  document.getElementById('machineGunBtn').textContent=`🔫 Пулемёт ур.${wall.gunLevel} (${600+wall.gunLevel*100}🪙)`;
+  document.getElementById('poisonDartBtn').textContent=`🎯 Яд. дротик ур.${wall.poisonLevel} (${700+wall.poisonLevel*120}🪙)`;
+  document.getElementById('iceWallBtn').textContent=wall.iceTimer>0?`❄️ Лёд: ${Math.ceil(wall.iceTimer/60)}с`:'❄️ Ледяная аура (500🪙)';
+  document.getElementById('fireWallBtn').textContent=wall.fireTimer>0?`🔥 Огонь: ${Math.ceil(wall.fireTimer/60)}с`:'🔥 Огненная стена (800🪙)';
+  let rb=document.getElementById('rebuildWallBtn');
+  if(!wall.active){rb.style.display='block';rb.classList.add('emergency');document.getElementById('wallHealth').textContent='РАЗРУШЕНА';document.getElementById('healWallBtn').disabled=true;}
+  else{rb.style.display='none';rb.classList.remove('emergency');document.getElementById('healWallBtn').disabled=false;document.getElementById('wallHealth').textContent=Math.floor((wall.hp/wall.maxHp)*100)+'%';}
+  let tm=mushrooms.reduce((s,m)=>s+(m.stolen?0:Math.max(0,m.hp)),0),mm=mushrooms.reduce((s,m)=>s+(m.stolen?0:m.maxHp),0);
+  document.getElementById('mushroomHealth').textContent=mm>0?Math.floor((tm/mm)*100)+'%':'0%';
+  document.getElementById('lightningBtn').textContent=lightningCooldown>0?`⚡ Молния (${Math.ceil(lightningCooldown/60)}с)`:'⚡ Цепная молния (250🪙)';
+  document.getElementById('healMushBtn').textContent=healMushCooldown>0?`🍄 Лечить (${Math.ceil(healMushCooldown/60)}с)`:'🍄 Исцеление (200🪙)';
+  document.getElementById('meteorBtn').textContent=meteorCooldown>0?`☄️ Метеор (${Math.ceil(meteorCooldown/60)}с)`:'☄️ Метеорит (500🪙)';
+}
+
+function checkGameState(){
+  if(!mushrooms.some(m=>!m.stolen&&m.hp>0)){gameOver=true;msg('Все грибы украдены...');}
+  if(enemies.length===0&&stolenMushrooms.length===0&&enemiesSpawned>=enemiesThisWave&&!gameOver){if(wave>=MAX_WAVES){gameWin=true;msg('🏆 ПОБЕДА! МАДАГАСКАР СПАСЁН!');}else startNextWave();}
+}
+
+function drawWall(){
+  let colors=['#8B6914','#A0522D','#8B7355','#9E9E9E','#B8860B','#DAA520','#FF8C00','#FFD700'];
+  if(!wall.active){ctx.fillStyle='rgba(139,69,19,0.2)';ctx.fillRect(wall.x,wall.y,wall.w,wall.h);ctx.strokeStyle='#ff0000';ctx.lineWidth=3;ctx.setLineDash([6,6]);ctx.strokeRect(wall.x,wall.y,wall.w,wall.h);ctx.setLineDash([]);}
+  else{
+    ctx.fillStyle=colors[Math.min(wallLevel-1,7)];ctx.fillRect(wall.x,wall.y,wall.w,wall.h);
+    ctx.strokeStyle='#2a1508';ctx.lineWidth=5;ctx.strokeRect(wall.x,wall.y,wall.w,wall.h);
+    for(let y=wall.y;y<wall.y+wall.h;y+=25){ctx.strokeStyle='#5C3A1E';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(wall.x,y);ctx.lineTo(wall.x+wall.w,y);ctx.stroke();}
+    if(wallLevel>=5){ctx.fillStyle='#FFD700';for(let i=0;i<Math.min(wallLevel-3,6);i++){ctx.beginPath();ctx.arc(wall.x+wall.w/2,wall.y-12-i*9,5,0,Math.PI*2);ctx.fill();}}
+    if(wall.iceTimer>0){ctx.fillStyle='rgba(100,200,255,0.35)';ctx.fillRect(wall.x-3,wall.y-3,wall.w+6,wall.h+6);}
+    if(wall.fireTimer>0){ctx.fillStyle='rgba(255,100,0,0.3)';ctx.fillRect(wall.x-3,wall.y-3,wall.w+6,wall.h+6);}
+    let hpP=wall.hp/wall.maxHp;ctx.fillStyle='rgba(0,0,0,0.8)';ctx.fillRect(wall.x-6,wall.y-18,wall.w+12,12);
+    let hpGrad=ctx.createLinearGradient(wall.x-6,0,wall.x+wall.w+6,0);hpGrad.addColorStop(0,'#f44336');hpGrad.addColorStop(0.5,'#ff9800');hpGrad.addColorStop(1,'#4caf50');
+    ctx.fillStyle=hpGrad;ctx.fillRect(wall.x-6,wall.y-18,(wall.w+12)*hpP,12);
+  }
+  if(wall.spikes>0){for(let y=wall.y;y<wall.y+wall.h;y+=22){ctx.fillStyle='#6a1b9a';ctx.beginPath();ctx.moveTo(wall.x-5,y);ctx.lineTo(wall.x-18,y-8);ctx.lineTo(wall.x-18,y+8);ctx.fill();}}
+  if(wall.gunLevel>0){
+    let gunWidth=Math.min(wall.gunLevel*4,20);
+    ctx.fillStyle='#444';ctx.fillRect(wall.x+5,wall.y+15,gunWidth+4,10);
+    ctx.fillStyle='#222';ctx.fillRect(wall.x+3,wall.y+12,6,16);
+    for(let i=0;i<wall.gunLevel;i++){ctx.fillStyle='#ffeb3b';ctx.fillRect(wall.x+8+i*4,wall.y+18,3,5);}
+  }
+  if(wall.poisonLevel>0){
+    let radius=5+wall.poisonLevel*1.5;
+    ctx.fillStyle='#1b5e20';ctx.beginPath();ctx.arc(wall.x+wall.w/2,wall.y-12,radius,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#4caf50';ctx.beginPath();ctx.arc(wall.x+wall.w/2,wall.y-12,radius*0.6,0,Math.PI*2);ctx.fill();
+  }
+}
+
+function drawRoad(){
+  ctx.strokeStyle='#3e2723';ctx.lineWidth=34;ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.beginPath();ctx.moveTo(roadPath[0].x,roadPath[0].y);for(let i=1;i<roadPath.length;i++)ctx.lineTo(roadPath[i].x,roadPath[i].y);ctx.stroke();
+  ctx.strokeStyle='#5D4037';ctx.lineWidth=22;ctx.stroke();
+  ctx.strokeStyle='#8D6E63';ctx.lineWidth=8;ctx.setLineDash([12,20]);ctx.stroke();ctx.setLineDash([]);
+}
+
+function drawJungleBackground(){
+  let g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0a1a0a');g.addColorStop(0.25,'#142614');g.addColorStop(0.5,'#1e3a1e');g.addColorStop(0.75,'#163016');g.addColorStop(1,'#0a140a');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,180,0.02)';for(let i=0;i<8;i++){ctx.beginPath();ctx.moveTo(W*0.85,0);ctx.lineTo(W*0.05+i*100,H);ctx.lineTo(W*0.05+(i+1)*100,H);ctx.fill();}
+  for(let e of bgElements){
+    if(e.type==='tree'){ctx.fillStyle='#0d1f0d';ctx.beginPath();ctx.arc(e.x,e.y,55*e.size,0,Math.PI*2);ctx.fill();ctx.fillStyle='#081508';ctx.beginPath();ctx.arc(e.x-25*e.size,e.y+15*e.size,40*e.size,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(e.x+25*e.size,e.y+15*e.size,40*e.size,0,Math.PI*2);ctx.fill();ctx.fillStyle='#1a0f05';ctx.fillRect(e.x-10*e.size,e.y+35*e.size,20*e.size,60*e.size);}
+    else if(e.type==='bush'){ctx.fillStyle='#0d2a0d';ctx.beginPath();ctx.arc(e.x,e.y,20*e.size,0,Math.PI*2);ctx.fill();}
+    else if(e.type==='rock'){ctx.fillStyle='#3a3a3a';ctx.beginPath();ctx.arc(e.x,e.y,15*e.size,0,Math.PI*2);ctx.fill();ctx.fillStyle='#222';ctx.beginPath();ctx.arc(e.x-3,e.y-2,10*e.size,0,Math.PI*2);ctx.fill();}
+  }
+  for(let v of jungleVines){ctx.strokeStyle='#0a1a0a';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(v.x,v.y);let cx=v.x+Math.sin(v.swing)*50,cy=v.y+v.length*0.5,ex=v.x+Math.sin(v.swing+1)*60,ey=v.y+v.length;ctx.quadraticCurveTo(cx,cy,ex,ey);ctx.stroke();}
+  for(let wp of weatherParticles){ctx.fillStyle='rgba(34,139,34,0.4)';ctx.fillRect(wp.x,wp.y,4,8);}
+  for(let f of fireflies){ctx.fillStyle=`rgba(255,255,180,${Math.abs(Math.sin(f.alpha))*0.9})`;ctx.beginPath();ctx.arc(f.x,f.y,f.size,0,Math.PI*2);ctx.fill();}
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);drawJungleBackground();drawRoad();drawWall();
+  for(let s of slowZones)s.draw(ctx);for(let m of mushrooms)if(!m.stolen)m.draw(ctx);
+  for(let ms of meteorShowers)ms.draw(ctx);
+  let hovered=getHoveredDefender(mouseX,mouseY);for(let d of defenders)d.draw(ctx,d===hovered);
+  for(let cv of clawVisuals)cv.draw(ctx);for(let tv of tongueVisuals)tv.draw(ctx);for(let pe of poisonEffects)pe.draw(ctx);
+  for(let e of enemies)e.draw(ctx);for(let e of stolenMushrooms)e.draw(ctx);
+  for(let p of projectiles)p.draw(ctx);for(let p of particles)p.draw(ctx);
+  if(!wall.active){ctx.fillStyle='rgba(255,0,0,0.25)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ff0000';ctx.font='bold 28px Arial';ctx.textAlign='center';ctx.fillText('💔 СТЕНА РАЗРУШЕНА! ЖУКИ ИДУТ К ГРИБАМ!',W/2,45);}
+  if(freezeAllTowers){ctx.fillStyle='rgba(0,200,255,0.2)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#fff';ctx.font='bold 32px Arial';ctx.textAlign='center';ctx.fillText('❄️ БАШНИ ЗАМОРОЖЕНЫ! ❄️',W/2,50);}
+  if(gameOver){ctx.fillStyle='rgba(0,0,0,0.8)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ff5252';ctx.font='bold 44px Arial';ctx.textAlign='center';ctx.fillText('💀 ГРИБЫ УКРАДЕНЫ 💀',W/2,H/2);}
+  else if(gameWin){ctx.fillStyle='rgba(0,0,0,0.8)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#FFD700';ctx.font='bold 44px Arial';ctx.textAlign='center';ctx.fillText('🏆 МАДАГАСКАР СПАСЁН! 🏆',W/2,H/2);}
+}
+
+function killEnemy(e){
+  let idxE=enemies.indexOf(e),idxS=stolenMushrooms.indexOf(e);if(idxE>-1)enemies.splice(idxE,1);if(idxS>-1)stolenMushrooms.splice(idxS,1);
+  let reward=e.type==='elite_boss'?4000:(e.type==='boss_king'?8000:(e.type==='jumper'?200:(e.type==='swarm'?40:(e.type==='toxic'?150:(e.type==='explosive'?120:(e.type==='armored'?100:(e.type==='freeze'?80:60)))))));
+  currency+=reward;comboCount++;comboTimer=60;if(comboCount>=5)currency+=comboCount*10;
+  if(e.type==='freeze'&&e.freezeOnDeath&&!freezeAllTowers){freezeAllTowers=true;freezeTimer=140;}
+  if(e.type==='explosive'&&e.explodeOnDeath&&wall.active){wall.hp-=100;if(wall.hp<=0){wall.active=false;wall.hp=0;}}
+  for(let i=0;i<8;i++)particles.push(new Particle(e.x,e.y,'#ff9800',e.isBoss?15:6));updateUI();
+}
+
+function update(){
+  if(gameOver||gameWin)return;
+  if(freezeTimer>0){freezeTimer--;if(freezeTimer<=0)freezeAllTowers=false;}
+  if(lightningCooldown>0)lightningCooldown--;if(healMushCooldown>0)healMushCooldown--;if(meteorCooldown>0)meteorCooldown--;
+  if(wall.iceTimer>0)wall.iceTimer--;if(wall.fireTimer>0)wall.fireTimer--;
+  if(comboTimer>0){comboTimer--;if(comboTimer<=0)comboCount=0;}
+  for(let wp of weatherParticles){wp.x+=wp.vx;wp.y+=wp.vy;if(wp.y>H)wp.y=0;}
+  if(wall.active&&wall.gunLevel>0){
+    if(wall.gunCooldown<=0){let all=[...enemies,...stolenMushrooms].filter(e=>Math.hypot(e.x-wall.x,e.y-(wall.y+wall.h/2))<160);if(all.length>0){let target=all[0];target.hp-=wall.gunLevel*10;particles.push(new Particle(target.x,target.y,'#ffeb3b',4));if(target.hp<=0)killEnemy(target);}wall.gunCooldown=12;}else wall.gunCooldown--;
+  }
+  if(wall.active&&wall.poisonLevel>0){for(let e of enemies){if(Math.hypot(e.x-wall.x,e.y-(wall.y+wall.h/2))<130){e.slowTimer=6;e.hp-=wall.poisonLevel*4;if(e.hp<=0)killEnemy(e);}}}
+  if(enemiesSpawned<enemiesThisWave){if(spawnTimer<=0){spawnEnemy();spawnTimer=SPAWN_DELAY;}else spawnTimer--;}
+  for(let d of defenders)d.update(enemies,projectiles,stolenMushrooms,tongueVisuals,clawVisuals,poisonEffects);
+  for(let i=poisonEffects.length-1;i>=0;i--){poisonEffects[i].update();if(poisonEffects[i].ticks<=0)poisonEffects.splice(i,1);else{for(let e of[...enemies,...stolenMushrooms]){if(Math.hypot(e.x-poisonEffects[i].x,e.y-poisonEffects[i].y)<22){e.hp-=poisonEffects[i].damage;if(e.hp<=0)killEnemy(e);}}}}
+  for(let i=meteorShowers.length-1;i>=0;i--){meteorShowers[i].update();if(meteorShowers[i].life<=0)meteorShowers.splice(i,1);}
+  for(let i=projectiles.length-1;i>=0;i--){
+    let p=projectiles[i];p.update();let all=[...enemies,...stolenMushrooms];
+    if((p.type==='tongue'||p.type==='eagle')&&p.targetEnemy&&!p.hit){let d=Math.hypot(p.x-p.targetEnemy.x,p.y-p.targetEnemy.y);if(d<16){p.hit=true;p.targetEnemy.hp-=p.damage;if(p.type==='tongue'){p.targetEnemy.x+=(p.x-p.targetEnemy.x)*0.6;p.targetEnemy.y+=(p.y-p.targetEnemy.y)*0.6;}if(p.targetEnemy.hp<=0)killEnemy(p.targetEnemy);projectiles.splice(i,1);continue;}}
+    for(let j=all.length-1;j>=0;j--){let e=all[j];if(Math.hypot(p.x-e.x,p.y-e.y)<e.size+p.radius){if(p.isAOE){for(let k=all.length-1;k>=0;k--){let e2=all[k];if(Math.hypot(e.x-e2.x,e.y-e2.y)<70){e2.hp-=p.damage*0.7;if(e2.hp<=0)killEnemy(e2);}}}else if(p.type!=='tongue'&&p.type!=='eagle'){e.hp-=p.damage;if(e.hp<=0)killEnemy(e);}if(p.type!=='tongue'&&p.type!=='eagle'){p.hit=true;projectiles.splice(i,1);}break;}}
+    if(p.life<=0&&!p.hit)projectiles.splice(i,1);
+  }
+  for(let i=enemies.length-1;i>=0;i--){let r=enemies[i].update(wall,mushrooms);if(r==='steal'){stolenMushrooms.push(enemies[i]);enemies.splice(i,1);}else if(r==='escaped'){currency=Math.max(0,currency-150);enemies.splice(i,1);updateUI();}else if(r==='kill'){killEnemy(enemies[i]);}}
+  for(let i=stolenMushrooms.length-1;i>=0;i--){let e=stolenMushrooms[i];e.x-=e.speed;if(e.x<-40){if(e.carryingMushroom){e.carryingMushroom.stolen=true;e.carryingMushroom.hp=0;}stolenMushrooms.splice(i,1);currency=Math.max(0,currency-180);updateUI();}}
+  for(let i=particles.length-1;i>=0;i--){particles[i].update();if(particles[i].life<=0)particles.splice(i,1);}
+  for(let i=tongueVisuals.length-1;i>=0;i--){tongueVisuals[i].update();if(tongueVisuals[i].life<=0)tongueVisuals.splice(i,1);}
+  for(let i=clawVisuals.length-1;i>=0;i--){clawVisuals[i].update();if(clawVisuals[i].life<=0)clawVisuals.splice(i,1);}
+  for(let f of fireflies)f.alpha+=f.speed;for(let v of jungleVines)v.swing+=v.speed;checkGameState();updateUI();
+}
+
+function gameLoop(){update();draw();requestAnimationFrame(gameLoop);}
+
+canvas.addEventListener('mousemove',(e)=>{const r=canvas.getBoundingClientRect();mouseX=(e.clientX-r.left)*(canvas.width/r.width);mouseY=(e.clientY-r.top)*(canvas.height/r.height);});
+canvas.addEventListener('click',(e)=>{if(gameOver||gameWin)return;const r=canvas.getBoundingClientRect();placeDefender((e.clientX-r.left)*(canvas.width/r.width),(e.clientY-r.top)*(canvas.height/r.height));});
+
+['charLemur','charFossa','charChameleon','charEagle','charScorpion'].forEach((id,idx)=>{document.getElementById(id).addEventListener('click',()=>{if(sellMode){sellMode=false;updateSellButton();}selectedUnitType=['lemur','fossa','chameleon','eagle','scorpion'][idx];document.querySelectorAll('.unit-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');updateUI();});});
+document.getElementById('sellModeBtn').addEventListener('click',toggleSellMode);document.getElementById('upgradeWallBtn').addEventListener('click',upgradeWall);
+document.getElementById('healWallBtn').addEventListener('click',healWall);document.getElementById('spikeWallBtn').addEventListener('click',addSpikes);
+document.getElementById('machineGunBtn').addEventListener('click',addMachineGun);document.getElementById('poisonDartBtn').addEventListener('click',addPoisonDart);
+document.getElementById('iceWallBtn').addEventListener('click',addIceWall);document.getElementById('fireWallBtn').addEventListener('click',addFireWall);
+document.getElementById('rebuildWallBtn').addEventListener('click',rebuildWall);
+document.getElementById('lightningBtn').addEventListener('click',castLightning);document.getElementById('healMushBtn').addEventListener('click',castHealMushrooms);
+document.getElementById('meteorBtn').addEventListener('click',castMeteor);document.getElementById('restartButton').addEventListener('click',()=>createLevel());
+
+createLevel();gameLoop();
+})();
+</script>
+</body>
+</html>
